@@ -1,9 +1,6 @@
 name: Build and Deploy Backend in Production
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
 
 jobs:

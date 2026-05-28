@@ -10,6 +10,7 @@ jobs:
     permissions:
       contents: read
       id-token: write
+      actions: read
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -42,9 +43,6 @@ jobs:
         with:
           team: laerlinger
           dockerfile: .docker/Dockerfile
-          image_suffix: seb-fagprove-backend
-          identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }}
-          project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }}
 
       - name: Deploy to NAIS
         uses: nais/deploy/actions/deploy@v2

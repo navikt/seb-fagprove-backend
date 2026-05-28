@@ -1,0 +1,9 @@
+.git
+.gradle
+.idea
+.DS_Store
+*.log
+
+build/*
+!build/libs/
+!build/libs/app.jar

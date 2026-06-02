@@ -1,111 +1,147 @@
 # Seb Fagprøve Backend
 
-Backend for fagprøveprosjektet med Kotlin, Ktor og NAIS deployment. Denne varianten er API-only og bruker ikke database.
+Backend for fagprøveprosjektet mitt i IT-utviklerfaget. Prosjektet er en forenklet NAV-løsning for behandling av test-søknader om foreldrepenger.
 
-> Tilhørende frontend: `seb-fagprove-frontend`
->
-> Denne kopien har en enkel API-rute på `GET /api/status` som frontend kan bruke for å verifisere fullstack-koblingen.
+Backend er laget med Kotlin og Ktor, deployes til NAIS, og bruker ikke database. Dataene som skal behandles kommer fra testdata/API og regelvurderingen skjer i applikasjonslogikken.
 
-## Bruk
+Tilhørende frontend: `seb-fagprove-frontend`
 
-Kopier filene inn i et nytt, tomt repo:
+## Status nå
+
+Dette er foreløpig backend-grunnlaget for foreldrepenger-caset.
+
+Ferdig:
+
+- grunnmodeller for søknad, inntekt, vedtak og regelvurdering
+- første del av regelmotoren: opptjeningsvurdering
+- fallback til engangsstønad eller avslag hvis opptjening ikke er oppfylt
+- enhetstester for opptjening og fallback
+- helsesjekker og enkel status-rute for fullstack-kobling
+
+Ikke ferdig ennå:
+
+- integrasjon mot DigiSIS API
+- HTTP-endepunkt for å vurdere en foreldrepengesøknad
+- resten av reglene for beregningsgrunnlag, stønadsperiode og fordeling av uker
+- frontend-visning av søknader og vedtak
+
+## Lokal kjøring
 
 ```bash
-# Opprett et nytt tomt repo på GitHub
 cd seb-fagprove-backend
-rm -rf .git
-git init
-git remote add origin git@github.com:navikt/seb-fagprove-backend.git
-
-# Kjør appen
 ./gradlew run
 ```
 
-Appen kjører på [http://localhost:8080](http://localhost:8080).
+Backend kjører lokalt på [http://localhost:8080](http://localhost:8080).
 
-## Tech Stack
+## Bygg og test
 
-- **Språk**: [Kotlin](https://kotlinlang.org/) 2.2
-- **Web-rammeverk**: [Ktor](https://ktor.io/) 3.3
-- **Serialisering**: kotlinx-serialization
-- **Logging**: Logback
-- **Bygg**: Gradle 8.14 med Kotlin DSL
-- **JDK**: 21 (Temurin)
-
-### Forutsetninger
-
-- JDK 21+ ([Temurin](https://adoptium.net/))
-
-### Helsesjekk
-
-- `GET /internal/isalive` → "ALIVE"
-- `GET /internal/isready` → "READY"
-- `GET /api/status` → JSON-respons brukt av frontend
-
-## Prosjektstruktur
-
-```
-src/main/kotlin/no/nav/
-├── Application.kt           # Applikasjonens inngang
-├── config/
-│   └── Routing.kt           # HTTP-ruter, CORS, feilhåndtering
-└── exception/
-    └── Exceptions.kt        # Egendefinerte unntak
-
-src/main/resources/
-├── application.yaml          # Ktor-konfigurasjon
-└── logback.xml               # Logging-konfigurasjon
+```bash
+./gradlew build
+./gradlew test
 ```
 
-## Legge til nye domener
+`./gradlew build` brukes som hovedsjekk fordi den kompilerer prosjektet, kjører tester og sjekker formatering.
 
-Følg dette mønsteret for nye domener (f.eks. `user`):
-
-```
-src/main/kotlin/no/nav/domain/user/
-├── UserDto.kt        # Data transfer objects (@Serializable)
-├── UserService.kt    # Forretningslogikk
-└── UserController.kt # HTTP-ruter
-```
-
-1. Definer request/response-DTOer i `UserDto.kt`.
-2. Legg forretningslogikk i `UserService.kt`.
-3. Lag HTTP-ruter i `UserController.kt`.
-4. Registrer rutene i `Routing.kt`.
-
-## TODOs etter kloning
-
-1. Bytt `seb-fagprove-backend-dev` og `seb-fagprove-backend` i `.nais/` til endelig appnavn hvis du får et annet navn.
-2. Bytt ingress til samme appnavn.
-3. Oppdater `accessPolicy.inbound.rules.application` til endelig frontendnavn.
-4. Oppdater `image_suffix` i `.github/workflows/` slik at det matcher `metadata.name`.
-
-## Fullstack-kobling
-
-Frontend forventer at backend svarer på:
+## Endepunkter
 
 ```http
+GET /internal/isalive
+GET /internal/isready
 GET /api/status
 ```
 
-Lokalt kjører backend på [http://localhost:8080](http://localhost:8080). På NAIS bruker frontend service discovery med `BACKEND_URL=http://seb-fagprove-backend-dev`.
+`/api/status` brukes av frontend for å sjekke at frontend og backend er koblet sammen.
+
+Eksempel på statusrespons:
+
+```json
+{
+  "status": "ok",
+  "app": "seb-fagprove-backend",
+  "message": "Backend svarer fra Ktor",
+  "timestamp": "2026-06-02T10:00:00Z"
+}
+```
+
+## Teknologi
+
+- Kotlin
+- Ktor
+- kotlinx-serialization
+- Gradle med Kotlin DSL
+- JDK 21
+- Logback
+- NAIS
+- GitHub Actions
+
+## Prosjektstruktur
+
+```text
+src/main/kotlin/no/nav/
+├── Application.kt
+├── config/
+│   └── Routing.kt
+├── exception/
+│   └── Exceptions.kt
+└── foreldrepenger/
+    ├── ForeldrepengerModels.kt
+    └── OpptjeningService.kt
+
+src/test/kotlin/no/nav/foreldrepenger/
+└── OpptjeningServiceTest.kt
+```
+
+## Foreldrepenger-logikk
+
+`ForeldrepengerModels.kt` inneholder domenemodellene som brukes i vurderingen:
+
+- `Soknad`
+- `Inntektsregistrering`
+- `Vedtak`
+- `Regelvurdering`
+- enum-typer for inntekt, rettsforhold, dekningsgrad og vedtakstype
+
+`OpptjeningService.kt` vurderer foreløpig bare opptjening:
+
+- søkeren må oppfylle forenklet medlemskapskrav
+- søkeren må ha minst 6 av 10 måneder med godkjent inntekt
+- annualisert inntekt må være over 1/2G
+
+Hvis opptjening ikke er oppfylt, lager tjenesten et fallback-vedtak:
+
+- norsk borger: `ENGANGSSTONAD`
+- ikke norsk borger: `AVSLAG`
+
+Denne logikken er bevisst holdt adskilt fra HTTP-rutene, slik at den kan testes uten å starte serveren.
 
 ## NAIS
 
-Dev-oppsettet bruker:
+Dev:
 
-- backend-app: `seb-fagprove-backend-dev`
+- appnavn: `seb-fagprove-backend-dev`
+- cluster: `dev-gcp`
 - ingress: `https://seb-fagprove-backend-dev.ekstern.dev.nav.no`
-- inbound access policy fra `seb-fagprove-frontend-dev`
+- workflow: `.github/workflows/deploy-dev.yaml`
+- NAIS-fil: `.nais/deploy-dev.yml`
 
-Prod-oppsettet bruker tilsvarende navn uten `-dev`.
+Prod:
 
-GitHub Actions deployer dev fra `dev`-branchen og prod fra `main`. Repoet må autoriseres for deploy i Nais Console, og workflowen forventer NAIS secrets/vars som ligger i prosjektoppsettet.
+- appnavn: `seb-fagprove-backend`
+- cluster: `prod-gcp`
+- workflow: `.github/workflows/deploy-prod.yaml`
+- NAIS-fil: `.nais/deploy-prod.yml`
 
-## Bygg
+Dev deployes ved push til `main` eller manuelt fra GitHub Actions. Prod deployes manuelt.
 
-```bash
-./gradlew build           # Bygg prosjektet
-./gradlew test            # Kjør tester
-./gradlew run             # Kjør lokalt
-```
+Repoet må være autorisert i Nais Console for teamet `laerlinger`.
+
+## Dokumentasjon for fagprøven
+
+Dette backend-arbeidet dekker foreløpig:
+
+- oppstart av domenemodell
+- første regel i vurderingsflyten
+- enhetstesting av forretningslogikk
+- skille mellom frontend, backend og regelvurdering
+- enkel NAIS-klar struktur uten database

@@ -3,6 +3,22 @@ package no.nav.foreldrepenger
 import kotlin.math.roundToInt
 
 class OpptjeningService {
+    fun lagVedtak(soknad: Soknad): Vedtak {
+        val opptjening = vurder(soknad)
+        if (!opptjening.oppfylt) {
+            return lagAlternativtVedtak(soknad, opptjening)
+        }
+
+        return Vedtak(
+            id = "vedtak-${soknad.id}",
+            soknadId = soknad.id,
+            type = VedtakType.INNVILGET_FORELDREPENGER,
+            tittel = "Innvilget foreldrepenger",
+            begrunnelse = "Soker oppfyller forenklet krav til medlemskap, opptjening og inntekt.",
+            regelvurderinger = opptjening.regelvurderinger,
+        )
+    }
+
     fun vurder(soknad: Soknad): Opptjeningsvurdering {
         val opptjeningsperiode = soknad.inntektshistorikk
             .sortedBy { it.maned }
@@ -55,6 +71,10 @@ class OpptjeningService {
             return null
         }
 
+        return lagAlternativtVedtak(soknad, opptjening)
+    }
+
+    private fun lagAlternativtVedtak(soknad: Soknad, opptjening: Opptjeningsvurdering): Vedtak {
         val alternativVedtakVurdering = if (soknad.erNorskBorger) {
             Regelvurdering(
                 regel = "Engangsstonad",

@@ -16,13 +16,13 @@ Ferdig:
 - DTO og mapping fra DigiSIS API-format til intern domenemodell
 - første del av regelmotoren: opptjeningsvurdering
 - alternativt vedtak med engangsstønad eller avslag hvis opptjening ikke er oppfylt
+- HTTP-endepunkt for å vurdere en foreldrepengesøknad
 - enhetstester for opptjening og alternativt vedtak
 - helsesjekker og enkel status-rute for fullstack-kobling
 
 Ikke ferdig ennå:
 
 - integrasjon mot DigiSIS API
-- HTTP-endepunkt for å vurdere en foreldrepengesøknad
 - resten av reglene for beregningsgrunnlag, stønadsperiode og fordeling av uker
 - frontend-visning av søknader og vedtak
 
@@ -50,9 +50,12 @@ Backend kjører lokalt på [http://localhost:8080](http://localhost:8080).
 GET /internal/isalive
 GET /internal/isready
 GET /api/status
+POST /api/foreldrepenger/vurder
 ```
 
 `/api/status` brukes av frontend for å sjekke at frontend og backend er koblet sammen.
+
+`POST /api/foreldrepenger/vurder` tar imot en søknad i DigiSIS-format, mapper den til intern domenemodell og returnerer et `Vedtak`.
 
 Eksempel på statusrespons:
 
@@ -64,6 +67,29 @@ Eksempel på statusrespons:
   "timestamp": "2026-06-02T10:00:00Z"
 }
 ```
+
+## Brukerveiledning
+
+Dette er en foreløpig brukerveiledning for backend. Den skal oppdateres når integrasjon mot DigiSIS API og resten av vurderingsreglene er ferdig.
+
+Backend brukes ikke direkte av en sluttbruker. Den brukes av frontend og av utvikler/tester som vil kontrollere at vurderingslogikken fungerer.
+
+For å bruke backend lokalt:
+
+1. Start backend med `./gradlew run`.
+2. Kontroller at backend svarer med `GET /api/status`.
+3. Send en søknad i DigiSIS-format til `POST /api/foreldrepenger/vurder`.
+4. Les responsen som et `Vedtak` med vedtakstype, begrunnelse og regelvurderinger.
+
+Foreløpig vurderer backend opptjening og forenklet medlemskap. Responsen kan derfor brukes til å se om en søknad gir foreldrepenger, engangsstønad eller avslag.
+
+Når løsningen er ferdig, skal denne delen beskrive:
+
+- hvordan søknader hentes fra DigiSIS
+- hvilke endepunkter frontend bruker
+- hvordan en test-søknad vurderes
+- hvordan feilsituasjoner håndteres
+- hvilke begrensninger backend har
 
 ## Teknologi
 
@@ -112,6 +138,7 @@ DigiSIS API-et sender feltet som `fnr`, og dette mappes i `DigisisSoknadDto`.
 - søkeren må oppfylle forenklet medlemskapskrav
 - søkeren må ha minst 6 av 10 måneder med godkjent inntekt
 - annualisert inntekt må være over 1/2G
+- søknaden får vedtakstype `INNVILGET_FORELDREPENGER`, `ENGANGSSTONAD` eller `AVSLAG`
 
 Hvis opptjening ikke er oppfylt, lager tjenesten et alternativt vedtak:
 

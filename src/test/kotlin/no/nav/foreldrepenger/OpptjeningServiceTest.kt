@@ -20,34 +20,39 @@ class OpptjeningServiceTest {
         assertTrue(vurdering.oppfylt)
         assertEquals(10, vurdering.godkjenteManeder)
         assertEquals(540_000, vurdering.annualisertInntekt)
+        assertEquals(VedtakType.INNVILGET_FORELDREPENGER, service.lagVedtak(soknad).type)
         assertNull(service.lagAlternativtVedtakHvisOpptjeningFeiler(soknad))
     }
 
     @Test
     fun `gir engangsstonad naar soker er norsk borger men har for faa inntektsmaneder`() {
+        val soknad = soknad(
+            inntekter = List(4) { index ->
+                inntekt("2026-${(index + 4).toString().padStart(2, '0')}", Inntektstype.ARBEID, 50_000)
+            },
+        )
         val vedtak = service.lagAlternativtVedtakHvisOpptjeningFeiler(
-            soknad(
-                inntekter = List(4) { index ->
-                    inntekt("2026-${(index + 4).toString().padStart(2, '0')}", Inntektstype.ARBEID, 50_000)
-                },
-            ),
+            soknad,
         )
 
         assertEquals(VedtakType.ENGANGSSTONAD, vedtak?.type)
+        assertEquals(VedtakType.ENGANGSSTONAD, service.lagVedtak(soknad).type)
     }
 
     @Test
     fun `gir avslag naar soker ikke er norsk borger`() {
+        val soknad = soknad(
+            erNorskBorger = false,
+            inntekter = List(10) { index ->
+                inntekt("2026-${(index + 1).toString().padStart(2, '0')}", Inntektstype.ARBEID, 50_000)
+            },
+        )
         val vedtak = service.lagAlternativtVedtakHvisOpptjeningFeiler(
-            soknad(
-                erNorskBorger = false,
-                inntekter = List(10) { index ->
-                    inntekt("2026-${(index + 1).toString().padStart(2, '0')}", Inntektstype.ARBEID, 50_000)
-                },
-            ),
+            soknad,
         )
 
         assertEquals(VedtakType.AVSLAG, vedtak?.type)
+        assertEquals(VedtakType.AVSLAG, service.lagVedtak(soknad).type)
     }
 
     @Test

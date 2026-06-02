@@ -35,7 +35,7 @@ class DigisisSoknadDtoTest {
         val soknad = dto.toDomain()
 
         assertEquals("fp-001-happy-path", soknad.id)
-        assertEquals("04059012377", soknad.fnr)
+        assertEquals("04059012377", soknad.fodselsnummer)
         assertEquals(Rettsforhold.BEGGE, soknad.rettsforhold)
         assertEquals(Dekningsgrad.HUNDRE_PROSENT, soknad.dekningsgrad)
         assertEquals(Inntektstype.ARBEID, soknad.inntektshistorikk[0].type)
@@ -103,7 +103,7 @@ class DigisisSoknadDtoTest {
         DigisisSoknadDto(
             id = "fp-test",
             beskrivelse = "Test",
-            fnr = "04059012377",
+            fodselsnummer = "04059012377",
             erNorskBorger = true,
             termindato = "2026-08-15",
             oppgittArsinntekt = 540_000,

@@ -1,12 +1,14 @@
 package no.nav.foreldrepenger
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerialName
 
 @Serializable
 data class DigisisSoknadDto(
     val id: String,
     val beskrivelse: String,
-    val fnr: String,
+    @SerialName("fnr")
+    val fodselsnummer: String,
     val erNorskBorger: Boolean,
     val termindato: String,
     val oppgittArsinntekt: Int,
@@ -19,7 +21,7 @@ data class DigisisSoknadDto(
         Soknad(
             id = id,
             beskrivelse = beskrivelse,
-            fnr = fnr,
+            fodselsnummer = fodselsnummer,
             erNorskBorger = erNorskBorger,
             termindato = termindato,
             oppgittArsinntekt = oppgittArsinntekt,

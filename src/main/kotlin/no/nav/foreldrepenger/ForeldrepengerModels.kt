@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
 data class Soknad(
     val id: String,
     val beskrivelse: String,
-    val fnr: String,
+    val fodselsnummer: String,
     val erNorskBorger: Boolean,
     val termindato: String,
     val oppgittArsinntekt: Int,

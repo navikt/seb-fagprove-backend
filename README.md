@@ -13,9 +13,10 @@ Dette er foreløpig backend-grunnlaget for foreldrepenger-caset.
 Ferdig:
 
 - grunnmodeller for søknad, inntekt, vedtak og regelvurdering
+- DTO og mapping fra DigiSIS API-format til intern domenemodell
 - første del av regelmotoren: opptjeningsvurdering
-- fallback til engangsstønad eller avslag hvis opptjening ikke er oppfylt
-- enhetstester for opptjening og fallback
+- alternativt vedtak med engangsstønad eller avslag hvis opptjening ikke er oppfylt
+- enhetstester for opptjening og alternativt vedtak
 - helsesjekker og enkel status-rute for fullstack-kobling
 
 Ikke ferdig ennå:
@@ -85,6 +86,7 @@ src/main/kotlin/no/nav/
 ├── exception/
 │   └── Exceptions.kt
 └── foreldrepenger/
+    ├── DigisisSoknadDto.kt
     ├── ForeldrepengerModels.kt
     └── OpptjeningService.kt
 
@@ -102,13 +104,16 @@ src/test/kotlin/no/nav/foreldrepenger/
 - `Regelvurdering`
 - enum-typer for inntekt, rettsforhold, dekningsgrad og vedtakstype
 
+I intern domenemodell bruker vi tydelige navn, for eksempel `fodselsnummer`.
+DigiSIS API-et sender feltet som `fnr`, og dette mappes i `DigisisSoknadDto`.
+
 `OpptjeningService.kt` vurderer foreløpig bare opptjening:
 
 - søkeren må oppfylle forenklet medlemskapskrav
 - søkeren må ha minst 6 av 10 måneder med godkjent inntekt
 - annualisert inntekt må være over 1/2G
 
-Hvis opptjening ikke er oppfylt, lager tjenesten et fallback-vedtak:
+Hvis opptjening ikke er oppfylt, lager tjenesten et alternativt vedtak:
 
 - norsk borger: `ENGANGSSTONAD`
 - ikke norsk borger: `AVSLAG`

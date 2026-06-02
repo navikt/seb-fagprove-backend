@@ -49,13 +49,13 @@ class OpptjeningService {
         )
     }
 
-    fun lagFallbackVedtakHvisOpptjeningFeiler(soknad: Soknad): Vedtak? {
+    fun lagAlternativtVedtakHvisOpptjeningFeiler(soknad: Soknad): Vedtak? {
         val opptjening = vurder(soknad)
         if (opptjening.oppfylt) {
             return null
         }
 
-        val fallbackVurdering = if (soknad.erNorskBorger) {
+        val alternativVedtakVurdering = if (soknad.erNorskBorger) {
             Regelvurdering(
                 regel = "Engangsstonad",
                 resultat = Regelresultat.OPPFYLT,
@@ -83,7 +83,7 @@ class OpptjeningService {
             type = vedtakType,
             tittel = tittel,
             begrunnelse = begrunnelse,
-            regelvurderinger = opptjening.regelvurderinger + fallbackVurdering,
+            regelvurderinger = opptjening.regelvurderinger + alternativVedtakVurdering,
         )
     }
 

@@ -20,12 +20,12 @@ class OpptjeningServiceTest {
         assertTrue(vurdering.oppfylt)
         assertEquals(10, vurdering.godkjenteManeder)
         assertEquals(540_000, vurdering.annualisertInntekt)
-        assertNull(service.lagFallbackVedtakHvisOpptjeningFeiler(soknad))
+        assertNull(service.lagAlternativtVedtakHvisOpptjeningFeiler(soknad))
     }
 
     @Test
     fun `gir engangsstonad naar soker er norsk borger men har for faa inntektsmaneder`() {
-        val vedtak = service.lagFallbackVedtakHvisOpptjeningFeiler(
+        val vedtak = service.lagAlternativtVedtakHvisOpptjeningFeiler(
             soknad(
                 inntekter = List(4) { index ->
                     inntekt("2026-${(index + 4).toString().padStart(2, '0')}", Inntektstype.ARBEID, 50_000)
@@ -38,7 +38,7 @@ class OpptjeningServiceTest {
 
     @Test
     fun `gir avslag naar soker ikke er norsk borger`() {
-        val vedtak = service.lagFallbackVedtakHvisOpptjeningFeiler(
+        val vedtak = service.lagAlternativtVedtakHvisOpptjeningFeiler(
             soknad(
                 erNorskBorger = false,
                 inntekter = List(10) { index ->
@@ -79,7 +79,7 @@ class OpptjeningServiceTest {
         Soknad(
             id = "fp-test",
             beskrivelse = "Test",
-            fnr = "04059012377",
+            fodselsnummer = "04059012377",
             erNorskBorger = erNorskBorger,
             termindato = "2026-08-15",
             oppgittArsinntekt = 540_000,

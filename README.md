@@ -122,7 +122,7 @@ Denne logikken er bevisst holdt adskilt fra HTTP-rutene, slik at den kan testes 
 
 ## NAIS
 
-Dev:
+Prosjektet deployes bare til dev i fagprøven.
 
 - appnavn: `seb-fagprove-backend-dev`
 - cluster: `dev-gcp`
@@ -130,14 +130,7 @@ Dev:
 - workflow: `.github/workflows/deploy-dev.yaml`
 - NAIS-fil: `.nais/deploy-dev.yml`
 
-Prod:
-
-- appnavn: `seb-fagprove-backend`
-- cluster: `prod-gcp`
-- workflow: `.github/workflows/deploy-prod.yaml`
-- NAIS-fil: `.nais/deploy-prod.yml`
-
-Dev deployes ved push til `main` eller manuelt fra GitHub Actions. Prod deployes manuelt.
+Dev deployes ved push til `main` eller manuelt fra GitHub Actions.
 
 Repoet må være autorisert i Nais Console for teamet `laerlinger`.
 

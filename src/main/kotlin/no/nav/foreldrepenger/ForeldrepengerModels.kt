@@ -56,6 +56,9 @@ data class Vedtak(
     val tittel: String,
     val begrunnelse: String,
     val regelvurderinger: List<Regelvurdering>,
+    val beregningsgrunnlag: Beregningsgrunnlag? = null,
+    val stonadsperiode: Stonadsperiode? = null,
+    val kvoter: Kvoter? = null,
 )
 
 @Serializable
@@ -76,6 +79,39 @@ data class Opptjeningsvurdering(
     val kravTilInntekt: Int,
     val regelvurderinger: List<Regelvurdering>,
 )
+
+@Serializable
+data class Beregningsgrunnlag(
+    val arssats: Int,
+    val oppgittArsinntekt: Int,
+    val avvikProsent: Double?,
+    val grunnlagBelop: Int?,
+    val kreverManuellVurdering: Boolean,
+)
+
+@Serializable
+data class Stonadsperiode(
+    val totalUker: Int,
+    val rettsforhold: Rettsforhold,
+    val antallBarn: Int,
+    val dekningsgrad: Dekningsgrad,
+)
+
+@Serializable
+data class Kvoter(
+    val modrekvote: Int,
+    val fedrekvote: Int,
+    val fellesperiode: Int,
+    val forhandskvoteMor: Int,
+    val flerbarnsbonus: Int,
+    val totalUker: Int,
+) {
+    init {
+        require(totalUker == modrekvote + fedrekvote + fellesperiode + forhandskvoteMor + flerbarnsbonus) {
+            "Summen av kvotene maa vaere lik total stonadsperiode."
+        }
+    }
+}
 
 @Serializable
 data class Regelvurdering(

@@ -13,8 +13,9 @@ import io.ktor.server.sse.*
 import kotlinx.serialization.Serializable
 import no.nav.exception.BadRequestException
 import no.nav.exception.NotFoundException
-import no.nav.foreldrepenger.DigisisSoknadDto
-import no.nav.foreldrepenger.OpptjeningService
+import no.nav.foreldrepenger.DigisisSoknadClient
+import no.nav.foreldrepenger.ForeldrepengerService
+import no.nav.foreldrepenger.Soknad
 import org.slf4j.LoggerFactory
 import java.time.Instant
 
@@ -31,7 +32,10 @@ data class StatusResponse(
     val timestamp: String,
 )
 
-fun Application.configureRouting() {
+fun Application.configureRouting(
+    foreldrepengerService: ForeldrepengerService = ForeldrepengerService(),
+    hentSoknader: () -> List<Soknad> = DigisisSoknadClient()::hentSoknader,
+) {
     install(ContentNegotiation) {
         json()
     }
@@ -72,8 +76,6 @@ fun Application.configureRouting() {
         }
 
         route("/api") {
-            val opptjeningService = OpptjeningService()
-
             get("/status") {
                 call.respond(
                     StatusResponse(
@@ -85,9 +87,13 @@ fun Application.configureRouting() {
                 )
             }
 
+            get("/foreldrepenger/soknader") {
+                call.respond(hentSoknader())
+            }
+
             post("/foreldrepenger/vurder") {
-                val soknad = call.receive<DigisisSoknadDto>().toDomain()
-                call.respond(opptjeningService.lagVedtak(soknad))
+                val soknad = call.receive<Soknad>()
+                call.respond(foreldrepengerService.lagVedtak(soknad))
             }
         }
     }

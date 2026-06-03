@@ -2,46 +2,87 @@
 
 Backend for fagprøveprosjektet mitt i IT-utviklerfaget. Prosjektet er en forenklet NAV-løsning for behandling av test-søknader om foreldrepenger.
 
-Backend er laget med Kotlin og Ktor, deployes til NAIS, og bruker ikke database. Dataene som skal behandles kommer fra testdata/API og regelvurderingen skjer i applikasjonslogikken.
+Backend er laget med Kotlin og Ktor, deployes til NAIS dev og bruker ikke database. Søknader hentes fra DigiSIS API-et, mappes til intern domenemodell og vurderes av regelmotoren i backend.
 
 Tilhørende frontend: `seb-fagprove-frontend`
 
-## Status nå
+## Brukerveiledning
 
-Dette er foreløpig backend-grunnlaget for foreldrepenger-caset.
+Backend brukes først og fremst av frontend, men kan også brukes direkte av utvikler eller sensor for å kontrollere API-et og regelmotoren.
 
-Ferdig:
+For å bruke backend lokalt:
 
-- grunnmodeller for søknad, inntekt, vedtak og regelvurdering
-- DTO og mapping fra DigiSIS API-format til intern domenemodell
-- henting av test-søknader fra DigiSIS API
-- regelmotor for opptjening, engangsstønad, beregningsgrunnlag, stønadsperiode og kvotefordeling
-- alternativt vedtak med engangsstønad eller avslag hvis opptjening ikke er oppfylt
-- HTTP-endepunkter for å hente og vurdere foreldrepengesøknader
-- enhetstester for regelmotor, mapping og HTTP-endepunkt
-- helsesjekker og enkel status-rute for fullstack-kobling
-
-Ikke ferdig ennå:
-
-- frontend-visning av søknader og vedtak
-
-## Lokal kjøring
+1. Start backend:
 
 ```bash
 cd seb-fagprove-backend
 ./gradlew run
 ```
 
-Backend kjører lokalt på [http://localhost:8080](http://localhost:8080).
-
-## Bygg og test
+2. Kontroller at backend svarer:
 
 ```bash
-./gradlew build
-./gradlew test
+curl -sS http://localhost:8080/api/status
 ```
 
-`./gradlew build` brukes som hovedsjekk fordi den kompilerer prosjektet, kjører tester og sjekker formatering.
+3. Hent søknader fra DigiSIS via backend:
+
+```bash
+curl -sS http://localhost:8080/api/foreldrepenger/soknader
+```
+
+4. Vurder en søknad ved å sende en komplett `Soknad` til:
+
+```http
+POST /api/foreldrepenger/vurder
+```
+
+Frontend gjør dette automatisk for alle søknader når saksbehandlerflaten åpnes.
+
+## Hvordan backend brukes i løsningen
+
+Flyten i løsningen er:
+
+1. Backend henter test-søknader fra DigiSIS API-et.
+2. DigiSIS-formatet mappes til intern domenemodell.
+3. Frontend henter søknadene fra backend.
+4. Frontend sender hver søknad tilbake til backend for vurdering.
+5. Backend returnerer et `Vedtak` med resultat, begrunnelse og regelvurderinger.
+6. Frontend viser resultatet til saksbehandler.
+
+Dette gir flyten:
+
+```text
+DigiSIS API -> backend -> frontend -> backend regelmotor -> frontend
+```
+
+## Resultattyper
+
+Regelmotoren kan returnere fire typer vedtak:
+
+- `INNVILGET_FORELDREPENGER`: søknaden oppfyller kravene til foreldrepenger.
+- `ENGANGSSTONAD`: søkeren oppfyller forenklet medlemskapskrav, men ikke opptjeningskravet.
+- `AVSLAG`: søkeren oppfyller verken kravene til foreldrepenger eller engangsstønad.
+- `MANUELL_VURDERING`: søknaden må vurderes av saksbehandler fordi inntektsavviket er for stort.
+
+## Testede API-søknader
+
+Ved lokal test av søknadene fra DigiSIS ga regelmotoren disse resultatene:
+
+| Søknad | Resultat |
+| --- | --- |
+| FP-001 | Foreldrepenger |
+| FP-002 | Avslag |
+| FP-003 | Engangsstønad |
+| FP-004 | Engangsstønad |
+| FP-005 | Manuell vurdering |
+| FP-006 | Foreldrepenger |
+| FP-007 | Foreldrepenger |
+| FP-008 | Foreldrepenger |
+| FP-009 | Engangsstønad |
+| FP-010 | Foreldrepenger |
+| FP-011 | Foreldrepenger |
+| FP-012 | Foreldrepenger |
 
 ## Endepunkter
 
@@ -53,11 +94,13 @@ GET /api/foreldrepenger/soknader
 POST /api/foreldrepenger/vurder
 ```
 
-`/api/status` brukes av frontend for å sjekke at frontend og backend er koblet sammen.
+`/internal/isalive` og `/internal/isready` brukes av NAIS.
 
-`GET /api/foreldrepenger/soknader` henter test-søknader fra DigiSIS API-et, mapper dem til intern domenemodell og returnerer dem til frontend.
+`/api/status` brukes for å kontrollere at backend kjører.
 
-`POST /api/foreldrepenger/vurder` tar imot en intern `Soknad` fra frontend og returnerer et `Vedtak`.
+`GET /api/foreldrepenger/soknader` henter test-søknader fra DigiSIS API-et, mapper dem til intern modell og returnerer dem til frontend.
+
+`POST /api/foreldrepenger/vurder` tar imot en intern `Soknad` og returnerer et `Vedtak`.
 
 Eksempel på statusrespons:
 
@@ -70,28 +113,37 @@ Eksempel på statusrespons:
 }
 ```
 
-## Brukerveiledning
+## Foreldrepenger-logikk
 
-Dette er en foreløpig brukerveiledning for backend. Den skal oppdateres når integrasjon mot DigiSIS API og resten av vurderingsreglene er ferdig.
+`ForeldrepengerModels.kt` inneholder domenemodellene som brukes i vurderingen:
 
-Backend brukes ikke direkte av en sluttbruker. Den brukes av frontend og av utvikler/tester som vil kontrollere at vurderingslogikken fungerer.
+- `Soknad`
+- `Inntektsregistrering`
+- `Vedtak`
+- `Regelvurdering`
+- enum-typer for inntekt, rettsforhold, dekningsgrad og vedtakstype
 
-For å bruke backend lokalt:
+I intern domenemodell bruker backend tydelige navn, for eksempel `fodselsnummer`.
+DigiSIS API-et sender feltet som `fnr`, og dette mappes i `DigisisSoknadDto`.
 
-1. Start backend med `./gradlew run`.
-2. Kontroller at backend svarer med `GET /api/status`.
-3. Hent test-søknader med `GET /api/foreldrepenger/soknader`.
-4. Send en valgt søknad til `POST /api/foreldrepenger/vurder`.
-5. Les responsen som et `Vedtak` med vedtakstype, begrunnelse og regelvurderinger.
+Regelkjeden består av:
 
-Backend vurderer nå de fem forenklede reglene i oppgaven. Responsen kan derfor brukes til å se om en søknad gir foreldrepenger, engangsstønad, avslag eller manuell vurdering.
+1. `OpptjeningService`: vurderer medlemskap, 6 av 10 måneder med inntekt og inntekt over 1/2G.
+2. `BeregningsgrunnlagService`: beregner årsinntekt, avvik og 6G-tak.
+3. `StonadsperiodeService`: beregner total stønadsperiode.
+4. `KvoteFordelingService`: fordeler uker mellom mor, far, fellesperiode og flerbarnsbonus.
+5. `ForeldrepengerService`: samler regelresultatene og lager endelig `Vedtak`.
 
-Når løsningen er ferdig, skal denne delen beskrive:
+Hvis inntektsavviket er mer enn 25 prosent, returnerer backend `MANUELL_VURDERING`.
 
-- hvilke endepunkter frontend bruker
-- hvordan en test-søknad vurderes
-- hvordan feilsituasjoner håndteres
-- hvilke begrensninger backend har sammenlignet med ekte foreldrepengeregelverk
+## Bygg og test
+
+```bash
+./gradlew test
+./gradlew build
+```
+
+`./gradlew build` brukes som hovedsjekk fordi den kompilerer prosjektet, kjører tester og sjekker formatering.
 
 ## Teknologi
 
@@ -130,42 +182,6 @@ src/test/kotlin/no/nav/foreldrepenger/
 └── OpptjeningServiceTest.kt
 ```
 
-## Foreldrepenger-logikk
-
-`ForeldrepengerModels.kt` inneholder domenemodellene som brukes i vurderingen:
-
-- `Soknad`
-- `Inntektsregistrering`
-- `Vedtak`
-- `Regelvurdering`
-- enum-typer for inntekt, rettsforhold, dekningsgrad og vedtakstype
-
-I intern domenemodell bruker vi tydelige navn, for eksempel `fodselsnummer`.
-DigiSIS API-et sender feltet som `fnr`, og dette mappes i `DigisisSoknadDto`.
-
-`OpptjeningService.kt` vurderer foreløpig bare opptjening:
-
-- søkeren må oppfylle forenklet medlemskapskrav
-- søkeren må ha minst 6 av 10 måneder med godkjent inntekt
-- annualisert inntekt må være over 1/2G
-- søknaden får vedtakstype `INNVILGET_FORELDREPENGER`, `ENGANGSSTONAD` eller `AVSLAG`
-
-Hvis opptjening ikke er oppfylt, lager tjenesten et alternativt vedtak:
-
-- norsk borger: `ENGANGSSTONAD`
-- ikke norsk borger: `AVSLAG`
-
-Hvis opptjening er oppfylt, går saken videre i regelkjeden:
-
-1. `BeregningsgrunnlagService` beregner snitt fra de siste 3 månedene, annualiserer inntekten, sjekker avvik mot oppgitt årsinntekt og kutter ved 6G.
-2. `StonadsperiodeService` finner total stønadsperiode basert på rettsforhold, antall barn og dekningsgrad.
-3. `KvoteFordelingService` fordeler ukene mellom mor, far, fellesperiode, forhåndskvote og flerbarnsbonus.
-4. `ForeldrepengerService` samler regelresultatene og lager endelig `Vedtak`.
-
-Hvis beregningsgrunnlaget har mer enn 25 prosent avvik mot oppgitt årsinntekt, returnerer backend `MANUELL_VURDERING`.
-
-Denne logikken er bevisst holdt adskilt fra HTTP-rutene, slik at den kan testes uten å starte serveren.
-
 ## NAIS
 
 Prosjektet deployes bare til dev i fagprøven.
@@ -180,12 +196,9 @@ Dev deployes ved push til `main` eller manuelt fra GitHub Actions.
 
 Repoet må være autorisert i Nais Console for teamet `laerlinger`.
 
-## Dokumentasjon for fagprøven
+## Avgrensninger
 
-Dette backend-arbeidet dekker foreløpig:
-
-- oppstart av domenemodell
-- alle fem forenklede regler i vurderingsflyten
-- enhetstesting av forretningslogikk
-- skille mellom frontend, backend og regelvurdering
-- enkel NAIS-klar struktur uten database
+- Backend bruker ikke database.
+- Test-søknader hentes fra DigiSIS API-et.
+- Regelverket er forenklet for fagprøven og er ikke en full implementasjon av ekte foreldrepengeregelverk.
+- Manuell vurdering lagres foreløpig ikke i backend.

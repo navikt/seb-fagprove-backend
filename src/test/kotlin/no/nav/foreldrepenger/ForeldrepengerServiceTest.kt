@@ -2,6 +2,7 @@ package no.nav.foreldrepenger
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -216,9 +217,157 @@ class ForeldrepengerServiceTest {
         assertEquals(82, vedtak.stonadsperiode?.totalUker)
     }
 
+    @Test
+    fun `gir engangsstonad naar inntektshistorikk er tom`() {
+        val vedtak = service.lagVedtak(
+            soknad(
+                id = "fp-kanttilfelle-tom-inntektshistorikk",
+                inntekter = emptyList(),
+            ),
+        )
+
+        assertEquals(VedtakType.ENGANGSSTONAD, vedtak.type)
+        assertNull(vedtak.beregningsgrunnlag)
+        assertNull(vedtak.stonadsperiode)
+        assertNull(vedtak.kvoter)
+        assertEquals(
+            "0 av 10 maneder har godkjent inntekt.",
+            vedtak.regelvurderinger.first { it.regel == "Opptjening 6 av 10 maneder" }.begrunnelse,
+        )
+    }
+
+    @Test
+    fun `feiler tydelig naar oppgitt arsinntekt er negativ`() {
+        val feil = assertFailsWith<IllegalArgumentException> {
+            service.lagVedtak(
+                soknad(
+                    id = "fp-kanttilfelle-negativ-arsinntekt",
+                    oppgittArsinntekt = -1,
+                ),
+            )
+        }
+
+        assertEquals("Oppgitt arsinntekt kan ikke vaere negativ.", feil.message)
+    }
+
+    @Test
+    fun `feiler tydelig naar termindato er i fortiden`() {
+        val feil = assertFailsWith<IllegalArgumentException> {
+            service.lagVedtak(
+                soknad(
+                    id = "fp-kanttilfelle-termindato-fortid",
+                    termindato = "2020-01-01",
+                ),
+            )
+        }
+
+        assertEquals("Termindato kan ikke vaere i fortiden.", feil.message)
+    }
+
+    @Test
+    fun `feiler tydelig naar termindato har ugyldig format`() {
+        val feil = assertFailsWith<IllegalArgumentException> {
+            service.lagVedtak(
+                soknad(
+                    id = "fp-kanttilfelle-ugyldig-termindato",
+                    termindato = "15.08.2026",
+                ),
+            )
+        }
+
+        assertEquals("Termindato maa vaere en gyldig dato paa formatet yyyy-MM-dd.", feil.message)
+    }
+
+    @Test
+    fun `feiler tydelig naar inntektshistorikk har negativt belop`() {
+        val feil = assertFailsWith<IllegalArgumentException> {
+            service.lagVedtak(
+                soknad(
+                    id = "fp-kanttilfelle-negativ-inntekt",
+                    inntekter = listOf(inntekt("2026-01", -5_000)),
+                ),
+            )
+        }
+
+        assertEquals("Inntektshistorikk kan ikke ha negativt belop.", feil.message)
+    }
+
+    @Test
+    fun `feiler tydelig naar fodselsnummer er tomt`() {
+        val feil = assertFailsWith<IllegalArgumentException> {
+            service.lagVedtak(
+                soknad(
+                    id = "fp-kanttilfelle-tomt-fodselsnummer",
+                    fodselsnummer = "",
+                ),
+            )
+        }
+
+        assertEquals("Fodselsnummer maa bestaa av 11 siffer.", feil.message)
+    }
+
+    @Test
+    fun `feiler tydelig naar fodselsnummer har feil lengde`() {
+        val feil = assertFailsWith<IllegalArgumentException> {
+            service.lagVedtak(
+                soknad(
+                    id = "fp-kanttilfelle-ugyldig-fodselsnummer",
+                    fodselsnummer = "123",
+                ),
+            )
+        }
+
+        assertEquals("Fodselsnummer maa bestaa av 11 siffer.", feil.message)
+    }
+
+    @Test
+    fun `feiler tydelig naar antall barn er null eller negativt`() {
+        listOf(0, -1).forEach { antallBarn ->
+            val feil = assertFailsWith<IllegalArgumentException> {
+                service.lagVedtak(
+                    soknad(
+                        id = "fp-kanttilfelle-antall-barn-$antallBarn",
+                        antallBarn = antallBarn,
+                    ),
+                )
+            }
+
+            assertEquals("Antall barn maa vaere minst 1.", feil.message)
+        }
+    }
+
+    @Test
+    fun `feiler tydelig naar soknads-id er tom`() {
+        val feil = assertFailsWith<IllegalArgumentException> {
+            service.lagVedtak(
+                soknad(
+                    id = "",
+                ),
+            )
+        }
+
+        assertEquals("Soknads-ID kan ikke vaere tom.", feil.message)
+    }
+
+    @Test
+    fun `feiler tydelig naar inntektsmaned har ugyldig format`() {
+        val feil = assertFailsWith<IllegalArgumentException> {
+            service.lagVedtak(
+                soknad(
+                    id = "fp-kanttilfelle-ugyldig-inntektsmaned",
+                    inntekter = listOf(inntekt("januar", 45_000)),
+                ),
+            )
+        }
+
+        assertEquals("Inntektsmaned maa vaere paa formatet yyyy-MM.", feil.message)
+    }
+
     private fun soknad(
         id: String = "fp-test",
         erNorskBorger: Boolean = true,
+        fodselsnummer: String = "04059012377",
+        termindato: String = "2026-08-15",
         oppgittArsinntekt: Int = 540_000,
         antallBarn: Int = 1,
         rettsforhold: Rettsforhold = Rettsforhold.BEGGE,
@@ -230,9 +379,9 @@ class ForeldrepengerServiceTest {
         Soknad(
             id = id,
             beskrivelse = "Test",
-            fodselsnummer = "04059012377",
+            fodselsnummer = fodselsnummer,
             erNorskBorger = erNorskBorger,
-            termindato = "2026-08-15",
+            termindato = termindato,
             oppgittArsinntekt = oppgittArsinntekt,
             inntektshistorikk = inntekter,
             antallBarn = antallBarn,

@@ -1,12 +1,20 @@
 package no.nav.foreldrepenger
 
+import java.time.LocalDate
+import java.time.YearMonth
+import java.time.format.DateTimeParseException
+
 class ForeldrepengerService(
     private val opptjeningService: OpptjeningService = OpptjeningService(),
     private val beregningsgrunnlagService: BeregningsgrunnlagService = BeregningsgrunnlagService(),
     private val stonadsperiodeService: StonadsperiodeService = StonadsperiodeService(),
     private val kvoteFordelingService: KvoteFordelingService = KvoteFordelingService(),
 ) {
+    private val fodselsnummerRegex = Regex("""\d{11}""")
+
     fun lagVedtak(soknad: Soknad): Vedtak {
+        validerSoknad(soknad)
+
         val opptjening = opptjeningService.vurder(soknad)
         if (!opptjening.oppfylt) {
             return lagAlternativtVedtak(soknad, opptjening)
@@ -83,4 +91,44 @@ class ForeldrepengerService(
             regelvurderinger = opptjening.regelvurderinger + beregningsgrunnlag.regelvurdering,
             beregningsgrunnlag = beregningsgrunnlag.beregningsgrunnlag,
         )
+
+    private fun validerSoknad(soknad: Soknad) {
+        require(soknad.id.isNotBlank()) {
+            "Soknads-ID kan ikke vaere tom."
+        }
+
+        require(fodselsnummerRegex.matches(soknad.fodselsnummer)) {
+            "Fodselsnummer maa bestaa av 11 siffer."
+        }
+
+        require(soknad.oppgittArsinntekt >= 0) {
+            "Oppgitt arsinntekt kan ikke vaere negativ."
+        }
+
+        require(soknad.antallBarn > 0) {
+            "Antall barn maa vaere minst 1."
+        }
+
+        val termindato = try {
+            LocalDate.parse(soknad.termindato)
+        } catch (_: DateTimeParseException) {
+            throw IllegalArgumentException("Termindato maa vaere en gyldig dato paa formatet yyyy-MM-dd.")
+        }
+
+        require(!termindato.isBefore(LocalDate.now())) {
+            "Termindato kan ikke vaere i fortiden."
+        }
+
+        soknad.inntektshistorikk.forEach { inntekt ->
+            require(inntekt.belop >= 0) {
+                "Inntektshistorikk kan ikke ha negativt belop."
+            }
+
+            try {
+                YearMonth.parse(inntekt.maned)
+            } catch (_: DateTimeParseException) {
+                throw IllegalArgumentException("Inntektsmaned maa vaere paa formatet yyyy-MM.")
+            }
+        }
+    }
 }

@@ -28,3 +28,6 @@ spec:
     inbound:
       rules:
         - application: seb-fagprove-frontend-dev
+    outbound:
+      external:
+        - host: api.digisis.org

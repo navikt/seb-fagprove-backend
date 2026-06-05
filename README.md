@@ -65,6 +65,23 @@ Regelmotoren kan returnere fire typer vedtak:
 - `AVSLAG`: søkeren oppfyller verken kravene til foreldrepenger eller engangsstønad.
 - `MANUELL_VURDERING`: søknaden må vurderes av saksbehandler fordi inntektsavviket er for stort.
 
+## Validering og endringsbestilling
+
+Backend validerer søknaden før regelmotoren kjøres. Dette ble lagt til etter endringsbestillingen om at regelmotoren må tåle uventede og ugyldige inndata uten å krasje eller gi feil svar i det stille.
+
+Valideringen dekker blant annet:
+
+- tom søknads-ID
+- ugyldig eller tomt fødselsnummer
+- negativ oppgitt årsinntekt
+- antall barn som er 0 eller negativt
+- termindato i fortiden eller med ugyldig datoformat
+- negativt beløp i inntektshistorikk
+- ugyldig månedsformat i inntektshistorikk
+- ukjent `rettsforhold` eller `dekningsgrad` sendt inn via API
+
+Ugyldige søknader returnerer HTTP 400 der det er mulig, slik at feil inndata behandles som klientfeil og ikke som en tilfeldig intern systemfeil.
+
 ## Testede API-søknader
 
 Ved lokal test av søknadene fra DigiSIS ga regelmotoren disse resultatene:
@@ -195,6 +212,8 @@ Prosjektet deployes bare til dev i fagprøven.
 Dev deployes ved push til `main` eller manuelt fra GitHub Actions.
 
 Repoet må være autorisert i Nais Console for teamet `laerlinger`.
+
+Backend har inbound access policy fra `seb-fagprove-frontend-dev`, slik at frontend kan kalle backend internt i NAIS. Backend har også outbound external access til `api.digisis.org`, fordi søknader hentes fra DigiSIS API-et.
 
 ## Avgrensninger
 

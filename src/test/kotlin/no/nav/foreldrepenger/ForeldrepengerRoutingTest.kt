@@ -60,6 +60,34 @@ class ForeldrepengerRoutingTest {
         assertEquals(49, vedtak.stonadsperiode?.totalUker)
     }
 
+    @Test
+    fun `post vurder returnerer bad request ved ukjent rettsforhold`() = testApplication {
+        application {
+            configureRouting()
+        }
+
+        val response = client.post("/api/foreldrepenger/vurder") {
+            contentType(ContentType.Application.Json)
+            setBody(soknadJson(rettsforhold = "UKJENT"))
+        }
+
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+    }
+
+    @Test
+    fun `post vurder returnerer bad request ved ukjent dekningsgrad`() = testApplication {
+        application {
+            configureRouting()
+        }
+
+        val response = client.post("/api/foreldrepenger/vurder") {
+            contentType(ContentType.Application.Json)
+            setBody(soknadJson(dekningsgrad = "UKJENT"))
+        }
+
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+    }
+
     private fun gyldigSoknad(): Soknad =
         Soknad(
             id = "fp-001-happy-path",
@@ -87,4 +115,34 @@ class ForeldrepengerRoutingTest {
 
     private fun inntekt(maned: String): Inntektsregistrering =
         Inntektsregistrering(maned = maned, type = Inntektstype.ARBEID, belop = 45_000)
+
+    private fun soknadJson(
+        rettsforhold: String = "BEGGE",
+        dekningsgrad: String = "HUNDRE_PROSENT",
+    ): String =
+        """
+        {
+          "id": "fp-001-happy-path",
+          "beskrivelse": "Happy path",
+          "fodselsnummer": "04059012377",
+          "erNorskBorger": true,
+          "termindato": "2026-08-15",
+          "oppgittArsinntekt": 540000,
+          "inntektshistorikk": [
+            { "maned": "2025-08", "type": "ARBEID", "belop": 45000 },
+            { "maned": "2025-09", "type": "ARBEID", "belop": 45000 },
+            { "maned": "2025-10", "type": "ARBEID", "belop": 45000 },
+            { "maned": "2025-11", "type": "ARBEID", "belop": 45000 },
+            { "maned": "2025-12", "type": "ARBEID", "belop": 45000 },
+            { "maned": "2026-01", "type": "ARBEID", "belop": 45000 },
+            { "maned": "2026-02", "type": "ARBEID", "belop": 45000 },
+            { "maned": "2026-03", "type": "ARBEID", "belop": 45000 },
+            { "maned": "2026-04", "type": "ARBEID", "belop": 45000 },
+            { "maned": "2026-05", "type": "ARBEID", "belop": 45000 }
+          ],
+          "antallBarn": 1,
+          "rettsforhold": "$rettsforhold",
+          "dekningsgrad": "$dekningsgrad"
+        }
+        """.trimIndent()
 }

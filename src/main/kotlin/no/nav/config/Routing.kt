@@ -5,6 +5,7 @@ import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.cors.routing.*
+import io.ktor.server.plugins.BadRequestException as KtorBadRequestException
 import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
@@ -50,6 +51,10 @@ fun Application.configureRouting(
 
     install(StatusPages) {
         exception<BadRequestException> { call, cause ->
+            routingLog.warn("Bad request: {}", cause.message)
+            call.respond(HttpStatusCode.BadRequest, ErrorResponse(cause.message ?: "Bad request"))
+        }
+        exception<KtorBadRequestException> { call, cause ->
             routingLog.warn("Bad request: {}", cause.message)
             call.respond(HttpStatusCode.BadRequest, ErrorResponse(cause.message ?: "Bad request"))
         }

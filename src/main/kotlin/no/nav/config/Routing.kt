@@ -4,16 +4,12 @@ import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.plugins.contentnegotiation.*
-import io.ktor.server.plugins.cors.routing.*
 import io.ktor.server.plugins.BadRequestException as KtorBadRequestException
 import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import io.ktor.server.sse.*
 import kotlinx.serialization.Serializable
-import no.nav.exception.BadRequestException
-import no.nav.exception.NotFoundException
 import no.nav.foreldrepenger.DigisisSoknadClient
 import no.nav.foreldrepenger.ForeldrepengerService
 import no.nav.foreldrepenger.Soknad
@@ -41,26 +37,10 @@ fun Application.configureRouting(
         json()
     }
 
-    install(SSE)
-
-    install(CORS) {
-        anyHost()
-        allowHeader(HttpHeaders.ContentType)
-        allowHeader(HttpHeaders.Authorization)
-    }
-
     install(StatusPages) {
-        exception<BadRequestException> { call, cause ->
-            routingLog.warn("Bad request: {}", cause.message)
-            call.respond(HttpStatusCode.BadRequest, ErrorResponse(cause.message ?: "Bad request"))
-        }
         exception<KtorBadRequestException> { call, cause ->
             routingLog.warn("Bad request: {}", cause.message)
             call.respond(HttpStatusCode.BadRequest, ErrorResponse(cause.message ?: "Bad request"))
-        }
-        exception<NotFoundException> { call, cause ->
-            routingLog.warn("Not found: {}", cause.message)
-            call.respond(HttpStatusCode.NotFound, ErrorResponse(cause.message ?: "Not found"))
         }
         exception<IllegalArgumentException> { call, cause ->
             routingLog.warn("Invalid input: {}", cause.message)

@@ -2,7 +2,7 @@ package no.nav.foreldrepenger
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNull
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class OpptjeningServiceTest {
@@ -31,7 +31,7 @@ class OpptjeningServiceTest {
         )
         val vurdering = service.vurder(soknad)
 
-        assertEquals(false, vurdering.oppfylt)
+        assertFalse(vurdering.oppfylt)
         assertEquals(4, vurdering.godkjenteManeder)
     }
 
@@ -45,8 +45,8 @@ class OpptjeningServiceTest {
         )
         val vurdering = service.vurder(soknad)
 
-        assertEquals(false, vurdering.oppfylt)
-        assertEquals(false, vurdering.erNorskBorger)
+        assertFalse(vurdering.oppfylt)
+        assertFalse(vurdering.erNorskBorger)
     }
 
     @Test
@@ -63,7 +63,7 @@ class OpptjeningServiceTest {
             ),
         )
 
-        assertEquals(false, vurdering.oppfylt)
+        assertFalse(vurdering.oppfylt)
         assertEquals(0, vurdering.godkjenteManeder)
         assertEquals(0, vurdering.annualisertInntekt)
     }
